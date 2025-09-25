@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Mother's Kitchen — Admin</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Admin panel for Mother's Kitchen to manage customers and deliveries." />
+    <link rel="icon" type="image/png" href="./Image/1234567890.png" />
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Load Supabase library first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Reset & base */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #fdf6f0;
+            color: #3a3a3a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Header */
+        header {
+            background: #fff;
+            box-shadow: 0 2px 8px rgb(0 0 0 / 0.1);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
+            background: #fff8f0;
+        }
+
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: #ef4444;
+            margin-left: 0.75rem;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        nav {
+            display: flex;
+            gap: 1.25rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            flex-grow: 1;
+        }
+
+        nav a {
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            color: #6b7280;
+            transition: background-color 0.25s ease, color 0.25s ease;
+            user-select: none;
+        }
+
+        nav a:hover,
+        nav a:focus-visible {
+            background: #f87171;
+            color: #fff;
+            outline-offset: 2px;
+            outline: 2px solid transparent;
+            box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+        }
+
+        nav a.active {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.7);
+        }
+
+        /* Main container */
+        main {
+            flex-grow: 1;
+            max-width: 1200px;
+            margin: 2rem auto 3rem;
+            padding: 0 1rem;
+            width: 100%;
+        }
+
+        /* Card style form container */
+        .form-container {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgb(0 0 0 / 0.05);
+            padding: 2rem 2.5rem;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .form-container:hover,
+        .form-container:focus-within {
+            box-shadow: 0 12px 28px rgb(239 68 68 / 0.2);
+        }
+
+        .form-container h2 {
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: #ef4444;
+            text-align: center;
+            user-select: none;
+        }
+
+        /* Form grid */
+        .customer-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem 2rem;
+        }
+
+        /* Single column on small screens */
+        @media (max-width: 600px) {
+            .customer-form {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-row {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: #6b7280;
+            user-select: none;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            padding: 0.65rem 1rem;
+            border: 1.8px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            background: #fff;
+            color: #3a3a3a;
+            font-weight: 500;
+            outline-offset: 2px;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+            outline: none;
+        }
+
+        /* Buttons container */
+        .form-buttons {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.8rem;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 1rem;
+            border: none;
+            border-radius: 14px;
+            padding: 0.75rem 2rem;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+            user-select: none;
+            box-shadow: 0 4px 14px rgb(248 113 113 / 0.4);
+            color: white;
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            flex-shrink: 0;
+            min-width: 140px;
+            text-align: center;
+        }
+
+        button:hover,
+        button:focus-visible {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 6px 20px rgb(220 38 38 / 0.6);
+            outline-offset: 2px;
+            outline: 2px solid transparent;
+        }
+
+        button#cancelEditBtn {
+            background: #9ca3af;
+            box-shadow: 0 4px 14px rgb(156 163 175 / 0.5);
+            color: #2f2f2f;
+            transition: background 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+            min-width: 120px;
+        }
+
+        button#cancelEditBtn:hover,
+        button#cancelEditBtn:focus-visible {
+            background: #6b7280;
+            box-shadow: 0 6px 20px rgb(107 114 128 / 0.7);
+            color: white;
+            outline-offset: 2px;
+            outline: 2px solid transparent;
+        }
+
+        button:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Table styles */
+        h2.table-title {
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: #ef4444;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            user-select: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 12px;
+            font-size: 1rem;
+            box-shadow: 0 8px 20px rgb(0 0 0 / 0.05);
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        thead tr {
+            background: #ef4444;
+            color: white;
+            user-select: none;
+        }
+
+        thead th {
+            padding: 0.85rem 1.25rem;
+            text-align: left;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.02em;
+        }
+
+        tbody tr {
+            background: #fff8f0;
+            transition: background-color 0.3s ease;
+            cursor: default;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgb(239 68 68 / 0.1);
+        }
+
+        tbody tr:hover {
+            background: #fef2f2;
+            box-shadow: 0 6px 16px rgb(239 68 68 / 0.2);
+        }
+
+        tbody td {
+            padding: 0.85rem 1.25rem;
+            vertical-align: middle;
+            color: #4b5563;
+            font-weight: 600;
+        }
+
+        tbody td:first-child {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        tbody td:last-child {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        /* Action buttons inside table */
+        tbody button {
+            background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+            border-radius: 10px;
+            padding: 0.3rem 0.7rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 3px 10px rgb(248 113 113 / 0.4);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+            user-select: none;
+        }
+
+        tbody button:hover,
+        tbody button:focus-visible {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 5px 18px rgb(220 38 38 / 0.7);
+            outline-offset: 2px;
+            outline: 2px solid transparent;
+        }
+
+        tbody button:last-child {
+            background: #9ca3af;
+            box-shadow: 0 3px 10px rgb(156 163 175 / 0.5);
+            color: #2f2f2f;
+        }
+
+        tbody button:last-child:hover,
+        tbody button:last-child:focus-visible {
+            background: #6b7280;
+            box-shadow: 0 5px 18px rgb(107 114 128 / 0.7);
+            color: white;
+            outline-offset: 2px;
+            outline: 2px solid transparent;
+        }
+
+        /* Responsive table for small screens */
+        @media (max-width: 700px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tbody tr {
+                margin-bottom: 1.5rem;
+                background: #fff8f0;
+                box-shadow: 0 4px 16px rgb(239 68 68 / 0.15);
+                border-radius: 16px;
+                padding: 1rem 1.25rem;
+            }
+
+            tbody td {
+                padding-left: 50%;
+                position: relative;
+                text-align: left;
+                font-weight: 600;
+                color: #4b5563;
+            }
+
+            tbody td:first-child {
+                color: #ef4444;
+                font-weight: 700;
+            }
+
+            tbody td::before {
+                position: absolute;
+                top: 50%;
+                left: 1.25rem;
+                transform: translateY(-50%);
+                white-space: nowrap;
+                font-weight: 700;
+                color: #ef4444;
+                user-select: none;
+            }
+
+            tbody td:nth-of-type(1)::before {
+                content: "Name";
+            }
+
+            tbody td:nth-of-type(2)::before {
+                content: "Phone";
+            }
+
+            tbody td:nth-of-type(3)::before {
+                content: "Email";
+            }
+
+            tbody td:nth-of-type(4)::before {
+                content: "Profile ID";
+            }
+
+            tbody td:nth-of-type(5)::before {
+                content: "Actions";
+                left: 0.5rem;
+            }
+
+            tbody td:last-child {
+                display: flex;
+                gap: 0.75rem;
+                justify-content: flex-start;
+                padding-left: 0;
+            }
+
+            tbody button {
+                font-size: 0.95rem;
+                padding: 0.4rem 0.9rem;
+            }
+        }
+    </style>
+    <style>
+        /* --- Login Modal Overlay Styles --- */
+        #loginModal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            z-index: 10000;
+            inset: 0;
+            background: rgba(44, 35, 35, 0.30);
+            transition: background 0.3s;
+            animation: loginBackdropFadeIn 0.4s cubic-bezier(.4, 1.5, .6, 1) 1;
+        }
+
+        .login-box {
+            background: #fff8f0;
+            border-radius: 18px;
+            padding: 2.2rem 2.5rem 1.7rem 2.5rem;
+            box-shadow: 0 8px 36px 0 rgba(239, 68, 68, 0.18), 0 1.5px 14px 0 rgba(0, 0, 0, 0.10);
+            min-width: 320px;
+            max-width: 95vw;
+            width: 100%;
+            max-width: 360px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+            animation: loginBoxScaleIn 0.42s cubic-bezier(.4, 1.5, .6, 1);
+        }
+
+        .login-box h2 {
+            margin: 0 0 0.7rem 0;
+            text-align: center;
+            color: #ef4444;
+            font-size: 1.7rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+        }
+
+        #loginModal input[type="email"],
+        #loginModal input[type="password"] {
+            padding: 0.65rem 1rem;
+            border: 1.8px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: border-color 0.25s, box-shadow 0.25s;
+            background: #fff;
+            color: #3a3a3a;
+            font-weight: 500;
+            outline-offset: 2px;
+            margin-bottom: 0;
+        }
+
+        #loginModal input[type="email"]:focus,
+        #loginModal input[type="password"]:focus {
+            border-color: #ef4444;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+            outline: none;
+        }
+
+        #loginModal .form-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.8rem;
+            margin-top: 1.1rem;
+        }
+
+        #loginModal button {
+            min-width: 120px;
+        }
+
+        @media (max-width: 480px) {
+            .login-box {
+                padding: 1.3rem 0.6rem 1.1rem 0.6rem;
+                min-width: 0;
+            }
+        }
+
+        @keyframes loginBoxScaleIn {
+            0% {
+                transform: scale(0.92) translateY(24px);
+                opacity: 0;
+            }
+
+            70% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes loginBackdropFadeIn {
+            0% {
+                background: rgba(44, 35, 35, 0.0);
+            }
+
+            100% {
+                background: rgba(44, 35, 35, 0.30);
+            }
+        }
+    </style>
+    <style>
+        /* --- Responsive and Accessibility Optimizations --- */
+        /* Global typography scaling */
+        html {
+            font-size: clamp(15px, 1.2vw + 1em, 18px);
+        }
+        body {
+            font-size: 1rem;
+        }
+
+        /* Responsive section/form-container padding */
+        .form-container {
+            padding: clamp(1.2rem, 3vw, 2.5rem) clamp(0.8rem, 3vw, 2.5rem);
+        }
+
+        /* Responsive grid utility class */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+            gap: clamp(1rem, 2vw, 2.5rem);
+        }
+
+        /* Responsive images */
+        img, picture, video, canvas, svg {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Form elements scale */
+        input,
+        select,
+        textarea,
+        button {
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        /* Make buttons full width on very small screens */
+        @media (max-width: 500px) {
+            button,
+            .form-buttons button,
+            #loginModal button {
+                width: 100% !important;
+                min-width: 0 !important;
+                box-sizing: border-box;
+            }
+            .form-buttons {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+        }
+
+        /* Responsive table: block on <700px, horizontal scroll 701-1024px */
+        @media (max-width: 700px) {
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                /* Handled by previous style block for <700px */
+            }
+        }
+        @media (min-width: 701px) and (max-width: 1024px) {
+            table {
+                display: block;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            table thead, table tbody, table tr {
+                display: table;
+                width: 100%;
+                table-layout: fixed;
+            }
+        }
+
+        /* Responsive .login-box adjustments */
+        @media (max-width: 1024px) {
+            .login-box {
+                width: 96vw;
+                max-width: 420px;
+                padding-left: 1.3rem;
+                padding-right: 1.3rem;
+            }
+        }
+        @media (max-width: 700px) {
+            .login-box {
+                width: 99vw;
+                max-width: 99vw;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .login-box {
+                width: 100vw;
+                max-width: 100vw;
+                padding-left: 0.2rem;
+                padding-right: 0.2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="adminContent">
+        <header>
+            <div style="display:flex; align-items:center;">
+                <div class="logo" aria-label="Mother's Kitchen Logo">
+                    <img src="./Image/1234567890.png" alt="Mother's Kitchen Logo" />
+                    <noscript>MK</noscript>
+                </div>
+                <div class="brand">Mother's Kitchen</div>
+            </div>
+            <nav aria-label="Primary navigation">
+                <a href="index.html">Home</a>
+                <a href="admin.html" class="active" aria-current="page">Admin</a>
+                <button id="logoutBtn" type="button" style="margin-left:1.25rem;">Logout</button>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Add New Customer Form -->
+            <section class="form-container" aria-labelledby="addCustomerTitle" style="margin-bottom:2rem;">
+                <h2 id="addCustomerTitle">Add New Customer</h2>
+                <form class="customer-form" id="addCustomerForm" autocomplete="off" novalidate>
+                    <div class="form-row">
+                        <label for="newCustomerName">Name <span style="color:#ef4444">*</span></label>
+                        <input id="newCustomerName" name="name" type="text" required aria-required="true"
+                            placeholder="Full Name" />
+                    </div>
+                    <div class="form-row">
+                        <label for="newCustomerPhone">Phone <span style="color:#ef4444">*</span></label>
+                        <input id="newCustomerPhone" name="phone" type="text" required aria-required="true"
+                            placeholder="Phone Number" />
+                    </div>
+                    <div class="form-row">
+                        <label for="newCustomerEmail">Email</label>
+                        <input id="newCustomerEmail" name="email" type="email" placeholder="Email Address" />
+                    </div>
+                    <div class="form-row">
+                        <label for="newCustomerProfileId">Profile ID</label>
+                        <input id="newCustomerProfileId" name="profile_id" type="text" placeholder="Profile ID" />
+                    </div>
+                    <div class="form-buttons">
+                        <button id="saveNewCustomerBtn" type="submit">Save Customer</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Update Meals for Existing Customer -->
+            <section class="form-container" aria-labelledby="formTitle">
+                <h2 id="formTitle">Update Customer Meals</h2>
+                <form class="customer-form" onsubmit="return false;" autocomplete="off" novalidate>
+                    <div class="form-row" style="grid-column: 1 / -1;">
+                        <label for="customerSelect">Select Customer</label>
+                        <select id="customerSelect" required aria-required="true"
+                            style="padding:0.65rem 1rem; border-radius:12px; border:1.8px solid #e0e0e0; font-size:1rem;">
+                            <option value="">-- Choose a customer --</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label for="custLunch">
+                            <input id="custLunch" type="checkbox" />
+                            Lunch
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label for="custDinner">
+                            <input id="custDinner" type="checkbox" />
+                            Dinner
+                        </label>
+                    </div>
+                    <div class="form-row" style="grid-column: 1 / -1;">
+                        <label for="custDay">Date</label>
+                        <input id="custDay" type="date" />
+                    </div>
+                    <div class="form-buttons">
+                        <button id="saveCustomerBtn" type="submit">Save Meals</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Customer List -->
+            <h2 class="table-title">Customer List</h2>
+            <table id="customersTable" role="grid" aria-describedby="tableDescription">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Profile ID</th>
+                        <th scope="col">Lunch</th>
+                        <th scope="col">Dinner</th>
+                        <th scope="col">Day</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <p id="tableDescription" class="sr-only">List of customers with their contact details and actions to edit or
+                delete.</p>
+        </main>
+    </div>
+
+    <!-- Login Modal Overlay -->
+    <div id="loginModal">
+        <div class="login-box" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+            <h2 id="loginTitle">Admin Login</h2>
+            <form id="loginForm" autocomplete="off">
+                <div class="form-row">
+                    <label for="loginEmail">Email</label>
+                    <input id="loginEmail" name="email" type="email" required placeholder="Email" autocomplete="off" />
+                </div>
+                <div class="form-row">
+                    <label for="loginPassword">Password</label>
+                    <input id="loginPassword" name="password" type="password" required placeholder="Password"
+                        autocomplete="new-password" />
+                </div>
+                <div class="form-buttons">
+                    <button id="loginSubmitBtn" type="submit">Login</button>
+                </div>
+                <div style="text-align:center; margin-top:0.7rem;">
+                    <a href="#"
+                        style="color:#ef4444; font-size:0.97rem; text-decoration:underline; cursor:pointer;">Forgot
+                        password?</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        /* ===== Supabase Setup ===== */
+        const SUPABASE_URL = "https://ejctvvgkhmoxhuctbbiy.supabase.co"; // 🔴 Replace
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqY3R2dmdraG1veGh1Y3RiYml5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwOTI3MTAsImV4cCI6MjA3MzY2ODcxMH0.sRpnI_m2GLIuxR40joeUXSBrLPSs3D8gb_o51sgg_ac"; // 🔴 Replace
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let editMode = false;
+
+        // ===== Load Customers and Meals, and Populate Table & Dropdown =====
+        let allCustomers = [];
+        let allMeals = [];
+        async function loadCustomers() {
+            // Fetch customers
+            const { data: customers, error: custErr } = await supabase.from("customers").select("*").order("name");
+            if (custErr) {
+                alert("Error fetching customers: " + custErr.message);
+                return;
+            }
+            allCustomers = customers || [];
+            // Fetch meals
+            const { data: meals, error: mealErr } = await supabase
+                .from("customers_meals")
+                .select("*")
+                .order("day", { ascending: false });
+            if (mealErr) {
+                alert("Error fetching meals: " + mealErr.message);
+                return;
+            }
+            allMeals = meals || [];
+            // Populate table
+            const tbody = document.querySelector("#customersTable tbody");
+            tbody.innerHTML = "";
+            // Show all meal entries with customer info
+            allMeals.forEach(meal => {
+                const c = allCustomers.find(cu => cu.id === meal.user_id);
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+          <td>${c ? (c.name || "-") : "-"}</td>
+          <td>${c ? c.phone : "-"}</td>
+          <td>${c ? (c.email || "-") : "-"}</td>
+          <td>${c ? (c.profile_id || "-") : "-"}</td>
+          <td>${meal.lunch ? "✔️" : ""}</td>
+          <td>${meal.dinner ? "✔️" : ""}</td>
+          <td>${meal.day ? meal.day : "-"}</td>
+          <td>
+            <button onclick="deleteMeal('${meal.id}')">Delete Meal</button>
+          </td>
+        `;
+                tbody.appendChild(tr);
+            });
+            // Populate dropdown
+            const select = document.getElementById("customerSelect");
+            const prevVal = select.value;
+            select.innerHTML = `<option value="">-- Choose a customer --</option>`;
+            allCustomers.forEach(c => {
+                const opt = document.createElement("option");
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${c.phone})`;
+                select.appendChild(opt);
+            });
+            // Try to retain previous selection
+            if (prevVal && allCustomers.some(c => c.id === prevVal)) {
+                select.value = prevVal;
+                select.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // ===== Add Meal Entry for Selected Customer =====
+        document.getElementById("saveCustomerBtn").addEventListener("click", async () => {
+            const select = document.getElementById("customerSelect");
+            const customerId = select.value;
+            const lunch = document.getElementById("custLunch").checked;
+            const dinner = document.getElementById("custDinner").checked;
+            const day = document.getElementById("custDay").value;
+
+            if (!customerId) {
+                alert("Please select a customer.");
+                return;
+            }
+            if (!lunch && !dinner) {
+                alert("Please select at least Lunch or Dinner.");
+                return;
+            }
+            if (!day) {
+                alert("Please select a date.");
+                return;
+            }
+            // Insert new meal entry
+            const { error } = await supabase
+                .from("customers_meals")
+                .insert([{ user_id: customerId, lunch, dinner, day }]);
+            if (error) {
+                alert("Error saving meal: " + error.message);
+                return;
+            }
+            alert("Meal entry saved!");
+            // Optionally reset meal fields
+            document.getElementById("custLunch").checked = false;
+            document.getElementById("custDinner").checked = false;
+            document.getElementById("custDay").value = "";
+            loadCustomers();
+        });
+
+        // ===== On Customer Dropdown Change: reset meal fields =====
+        document.getElementById("customerSelect").addEventListener("change", function () {
+            document.getElementById("custLunch").checked = false;
+            document.getElementById("custDinner").checked = false;
+            document.getElementById("custDay").value = "";
+        });
+
+        /* ===== Delete Customer ===== */
+        async function deleteCustomer(id) {
+            if (!confirm("Are you sure you want to delete this customer? This will also delete all their meal entries.")) return;
+            // Delete meals first
+            await supabase.from("customers_meals").delete().eq("user_id", id);
+            // Then delete customer
+            const { error } = await supabase.from("customers").delete().eq("id", id);
+            if (error) {
+                alert("Error deleting customer: " + error.message);
+            } else {
+                alert("Customer deleted!");
+                loadCustomers();
+            }
+        }
+
+        /* ===== Delete Meal Entry ===== */
+        async function deleteMeal(mealId) {
+            if (!confirm("Are you sure you want to delete this meal entry?")) return;
+            const { error } = await supabase.from("customers_meals").delete().eq("id", mealId);
+            if (error) {
+                alert("Error deleting meal: " + error.message);
+            } else {
+                alert("Meal entry deleted!");
+                loadCustomers();
+            }
+        }
+
+        /* ===== Logout ===== */
+        document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
+            e.preventDefault();
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                    alert("Error logging out: " + error.message);
+                } else {
+                    window.location.href = "index.html";
+                }
+            } catch (err) {
+                alert("Unexpected error logging out.");
+            }
+        });
+
+        /* ===== Add New Customer Form Submission ===== */
+        document.getElementById("addCustomerForm")?.addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const name = document.getElementById("newCustomerName").value.trim();
+            const phone = document.getElementById("newCustomerPhone").value.trim();
+            const email = document.getElementById("newCustomerEmail").value.trim();
+            const profile_id = document.getElementById("newCustomerProfileId").value.trim();
+            // Validation
+            if (!name) {
+                alert("Name is required.");
+                document.getElementById("newCustomerName").focus();
+                return;
+            }
+            if (!phone) {
+                alert("Phone is required.");
+                document.getElementById("newCustomerPhone").focus();
+                return;
+            }
+            // Insert into Supabase
+            const { error } = await supabase.from("customers").insert([{ name, phone, email: email || null, profile_id: profile_id || null }]);
+            if (error) {
+                alert("Error adding customer: " + error.message);
+                return;
+            }
+            // Reset form
+            document.getElementById("addCustomerForm").reset();
+            alert("Customer added!");
+            // Refresh table and dropdown
+            await loadCustomers();
+        });
+
+        /* ===== Login Modal Logic ===== */
+        const adminContent = document.getElementById("adminContent");
+        const loginModal = document.getElementById("loginModal");
+        function showAdminContent() {
+            adminContent.style.display = "";
+            loginModal.style.display = "none";
+            // Push a new state so that back/forward navigation triggers auth check
+            history.pushState(null, "", location.href);
+        }
+        function showLoginModal() {
+            adminContent.style.display = "none";
+            loginModal.style.display = "flex";
+        }
+        // On page load: check session
+        window.addEventListener("DOMContentLoaded", async function () {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    showAdminContent();
+                    loadCustomers();
+                } else {
+                    showLoginModal();
+                }
+            } catch (e) {
+                showLoginModal();
+            }
+        });
+
+        // Subscribe to auth state changes for session handling
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === "SIGNED_OUT" || !session) {
+                showLoginModal();
+            } else if (event === "SIGNED_IN") {
+                showAdminContent();
+                loadCustomers();
+            }
+        });
+        // Force redirect to index.html when user presses browser back button
+        window.addEventListener("popstate", async () => {
+            await supabase.auth.signOut();
+            window.location.href = "index.html";
+        });
+
+        // Prevent navigating forward into admin without login
+        window.addEventListener("pageshow", async (event) => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                await supabase.auth.signOut();
+                window.location.href = "index.html";
+            }
+        });
+        // Login form logic
+        document.getElementById("loginForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value;
+            if (!email || !password) {
+                alert("Please enter both email and password.");
+                return;
+            }
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) {
+                    alert("Login failed: " + error.message);
+                    return;
+                }
+                showAdminContent();
+                loadCustomers();
+            } catch (err) {
+                alert("Unexpected error during login.");
+            }
+        });
+        // Hide admin content by default
+        adminContent.style.display = "none";
+        loginModal.style.display = "flex";
+
+        /* Load on page start (now only after login) */
+    </script>
+</body>
+
+</html>
